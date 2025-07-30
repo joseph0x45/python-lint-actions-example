@@ -1,2 +1,2 @@
 # python-lint-actions-example
-huh
+Basic example showcasing Github Actions for linting and type checking python code
