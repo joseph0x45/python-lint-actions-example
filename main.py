@@ -1,4 +1,4 @@
-def some_method() -> str:
+def some_method() -> int:
     return ""
 
 
