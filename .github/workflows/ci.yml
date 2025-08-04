@@ -1,10 +1,16 @@
-name: CI
+name: CI + Auto PR/Merge
 
 on:
   push:
-    branches:
+    branches-ignore:
       - main
   pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   lint-and-typecheck:
@@ -40,3 +46,42 @@ jobs:
 
       - name: Type check with Pyright
         run: pyright
+
+  create-pr-and-auto-merge:
+    needs: lint-and-typecheck
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: ${{ github.ref_name }}
+          title: "Auto PR: ${{ github.ref_name }}"
+          body: "Automated PR created for branch ${{ github.ref_name }}"
+
+      # Enable auto-merge
+      - name: Enable auto-merge
+        if: steps.cpr.outputs.pull-request-url != ''
+        run: |
+          PR_URL="${{ steps.cpr.outputs.pull-request-url }}"
+          echo "Enabling auto-merge for $PR_URL"
+          gh pr merge "$PR_URL" --merge --auto
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Delete branch after merge (optional)
+      - name: Delete branch after merge
+        if: steps.cpr.outputs.pull-request-url != ''
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          echo "Attempting to delete branch $BRANCH"
+          git push origin --delete "$BRANCH" || echo "Branch not deleted (maybe not merged yet)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
