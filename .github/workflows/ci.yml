@@ -1,87 +1,20 @@
-name: CI + Auto PR/Merge
+name: MS Teams Notification
 
-on:
-  push:
-    branches-ignore:
-      - main
-  pull_request:
-    branches:
-      - main
-
-permissions:
-  contents: write
-  pull-requests: write
+on: [push, pull_request]
 
 jobs:
-  lint-and-typecheck:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      # this is the new step using the ms-teams-notification action
+      - name: Notify dedicated teams channel
+        uses: jdcargile/ms-teams-notification@v1.4
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies (Python)
-        run: |
-          python -m pip install --upgrade pip
-          pip install ruff mypy
-
-      - name: Set up Node.js (for Pyright)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Pyright
-        run: npm install -g pyright
-
-      - name: Lint with Ruff
-        run: ruff check .
-
-      - name: Type check with Mypy
-        run: mypy .
-
-      - name: Type check with Pyright
-        run: pyright
-
-  create-pr-and-auto-merge:
-    needs: lint-and-typecheck
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: main
-          branch: ${{ github.ref_name }}
-          title: "Auto PR: ${{ github.ref_name }}"
-          body: "Automated PR created for branch ${{ github.ref_name }}"
-
-      # Enable auto-merge
-      - name: Enable auto-merge
-        if: steps.cpr.outputs.pull-request-url != ''
-        run: |
-          PR_URL="${{ steps.cpr.outputs.pull-request-url }}"
-          echo "Enabling auto-merge for $PR_URL"
-          gh pr merge "$PR_URL" --merge --auto
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Delete branch after merge (optional)
-      - name: Delete branch after merge
-        if: steps.cpr.outputs.pull-request-url != ''
-        run: |
-          BRANCH="${{ github.ref_name }}"
-          echo "Attempting to delete branch $BRANCH"
-          git push origin --delete "$BRANCH" || echo "Branch not deleted (maybe not merged yet)"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }} # this will use the runner's token.
+          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
+          notification-summary: Your custom notification message 
+          notification-color: 17a2b8
+          timezone: America/Denver
+          verbose-logging: true
