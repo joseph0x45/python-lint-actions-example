@@ -3,6 +3,7 @@ import json
 import sys
 import requests
 import os
+import subprocess
 
 WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL")
 if not WEBHOOK_URL:
@@ -18,6 +19,24 @@ status = os.getenv("JOB_STATUS", "failed")  # We'll pass this manually
 run_url = f"{server_url}/{repo}/actions/runs/{run_id}"
 
 color = "Attention" if status.lower() == "failed" else "Good"
+
+
+def get_committer_name():
+    try:
+        name = (
+            subprocess.check_output(
+                ["git", "log", "-1", "--pretty=format:%an"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+            .strip()
+        )
+        return name
+    except Exception:
+        return "Unknown committer"
+
+
+committer = get_committer_name()
 
 payload = {
     "attachments": [
@@ -44,7 +63,12 @@ payload = {
                         "type": "TextBlock",
                         "text": f"[View Workflow Run]({run_url})",
                         "wrap": True
-                    }
+                    },
+                    {
+                        "type": "TextBlock",
+                        "text": f"Committer: {committer}",
+                        "wrap": True
+                    },
                 ]
             }
         }
