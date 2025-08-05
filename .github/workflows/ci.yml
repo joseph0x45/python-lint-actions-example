@@ -38,7 +38,7 @@ jobs:
         run: ruff check .
 
       - name: Type check with Mypy
-        run: mypy .
+        run: mypy --install-types --non-interactive .
 
       - name: Type check with Pyright
         run: pyright
