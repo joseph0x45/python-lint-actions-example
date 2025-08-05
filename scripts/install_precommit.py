@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import os
 import sys
+import shutil
 from pathlib import Path
 
-# Centralized hook scripts directory (relative to repo root)
 HOOKS_SRC = Path("hooks")
 
-# Git hooks directory
 HOOKS_DEST = Path(".git/hooks")
 
 
@@ -18,20 +17,12 @@ def create_symlink(src: Path, dest: Path):
     print(f"Symlink created: {dest} -> {src}")
 
 
-def create_batch_wrapper(src: Path, dest: Path):
-    """
-    Create a Windows batch file wrapper pointing to the Python hook script.
-    Path is relative: .git/hooks -> ../hooks/<hook_name>
-    """
-    hook_name = src.name
-    batch_content = f"""@echo off
-REM Auto-generated Git hook wrapper
-python "%~dp0..\\hooks\\{hook_name}" %*
-"""
-    wrapper_path = dest.with_suffix(".bat")
-    with open(wrapper_path, "w") as f:
-        f.write(batch_content)
-    print(f"Batch wrapper created: {wrapper_path}")
+def copy_hook(src: Path, dest: Path):
+    """Copy hook file on Windows"""
+    if dest.exists():
+        dest.unlink()
+    shutil.copyfile(src, dest)
+    print(f"Copied hook to {dest}")
 
 
 def install_hooks():
@@ -50,7 +41,7 @@ def install_hooks():
         if sys.platform.startswith(("linux", "darwin")):
             create_symlink(hook_script, dest)
         elif sys.platform.startswith("win"):
-            create_batch_wrapper(hook_script, dest)
+            copy_hook(hook_script, dest)
         else:
             print(f"Unsupported platform: {sys.platform}")
             sys.exit(1)
