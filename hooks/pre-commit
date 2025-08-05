@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Pre-commit hook to run Ruff, Mypy, and Pyright
+# Fails the commit if any check fails.
+
+set -e  # Exit on first failure
+
+echo "Running pre-commit checks..."
+
+# 1. Ruff (Linting)
+echo "▶ Ruff linting..."
+ruff check .
+echo "✔ Ruff passed"
+
+# 2. Mypy (Type checking)
+echo "▶ Mypy type checking..."
+mypy --install-types --non-interactive .
+echo "✔ Mypy passed"
+
+# 3. Pyright (Type checking)
+echo "▶ Pyright type checking..."
+pyright
+echo "✔ Pyright passed"
+
+echo "✔  All checks passed. Proceeding with commit."
