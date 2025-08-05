@@ -3,5 +3,3 @@ def hello_world() -> int:
 
 
 hello_message = hello_world()
-
-print(hello_message)
