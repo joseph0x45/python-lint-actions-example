@@ -1,4 +1,4 @@
-def hello_world() -> str:
+def hello_world() -> int:
     return "Hello World"
 
 
