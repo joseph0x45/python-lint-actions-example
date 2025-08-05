@@ -2,20 +2,12 @@
 import os
 import sys
 from pathlib import Path
-import textwrap
 
-# Centralized hook scripts directory
-HOOKS_SRC = Path("hooks")  # e.g., hooks/pre-commit, hooks/pre-push
+# Centralized hook scripts directory (relative to repo root)
+HOOKS_SRC = Path("hooks")
 
 # Git hooks directory
 HOOKS_DEST = Path(".git/hooks")
-
-# Windows batch wrapper template
-BATCH_TEMPLATE = textwrap.dedent(r"""
-    @echo off
-    REM Auto-generated Git hook wrapper
-    python "%~dp0..\..\{hook_path}" %*
-""")
 
 
 def create_symlink(src: Path, dest: Path):
@@ -27,11 +19,19 @@ def create_symlink(src: Path, dest: Path):
 
 
 def create_batch_wrapper(src: Path, dest: Path):
-    """Create Windows batch file wrapper"""
-    content = BATCH_TEMPLATE.format(hook_path=src.as_posix())
-    with open(dest.with_suffix(".bat"), "w") as f:
-        f.write(content.strip() + "\n")
-    print(f"Batch wrapper created: {dest.with_suffix('.bat')}")
+    """
+    Create a Windows batch file wrapper pointing to the Python hook script.
+    Path is relative: .git/hooks -> ../hooks/<hook_name>
+    """
+    hook_name = src.name
+    batch_content = f"""@echo off
+REM Auto-generated Git hook wrapper
+python "%~dp0..\\hooks\\{hook_name}" %*
+"""
+    wrapper_path = dest.with_suffix(".bat")
+    with open(wrapper_path, "w") as f:
+        f.write(batch_content)
+    print(f"Batch wrapper created: {wrapper_path}")
 
 
 def install_hooks():
