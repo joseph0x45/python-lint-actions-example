@@ -1,36 +1,41 @@
-#!/usr/bin/env python3
-"""
-Pre-commit hook to run Ruff, Mypy, and Pyright checks.
-Aborts commit if any check fails.
-"""
+#!/bin/sh
+# Pre-commit hook to run Ruff, Mypy, and Pyright
+# Compatible with POSIX sh (no Bash arrays)
 
-import subprocess
-import sys
+echo "Running pre-commit checks..."
+echo
 
-# Define checks (command as list)
-CHECKS = [
-    ["ruff", "check", "."],
-    ["mypy", "--install-types", "--non-interactive", "."],
-    ["pyright"],
-]
+# Run Ruff
+echo "> ruff check ."
+ruff check .
+if [ $? -ne 0 ]; then
+    echo "✖ ruff check failed. Aborting commit."
+    exit 1
+else
+    echo "✔ ruff check passed."
+    echo
+fi
 
+# Run Mypy
+echo "> mypy --install-types --non-interactive ."
+mypy --install-types --non-interactive .
+if [ $? -ne 0 ]; then
+    echo "✖ mypy failed. Aborting commit."
+    exit 1
+else
+    echo "✔ mypy passed."
+    echo
+fi
 
-def run_check(cmd):
-    print(f"> {' '.join(cmd)}")
-    result = subprocess.run(cmd)
-    if result.returncode != 0:
-        print(f"✖ {' '.join(cmd)} failed. Aborting commit.")
-        sys.exit(result.returncode)
-    else:
-        print(f"✔ {' '.join(cmd)} passed.\n")
+# Run Pyright
+echo "> pyright"
+pyright
+if [ $? -ne 0 ]; then
+    echo "✖ pyright failed. Aborting commit."
+    exit 1
+else
+    echo "✔ pyright passed."
+    echo
+fi
 
-
-def main():
-    print("Running pre-commit checks...\n")
-    for check in CHECKS:
-        run_check(check)
-    print("✔ All checks passed. Proceeding with commit.")
-
-
-if __name__ == "__main__":
-    main()
+echo "✔ All checks passed. Proceeding with commit."
