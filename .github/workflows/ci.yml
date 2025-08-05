@@ -1,20 +1,53 @@
-name: MS Teams Notification
+name: CI with Teams Notification on Failure
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  lint-and-typecheck:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      # this is the new step using the ms-teams-notification action
-      - name: Notify dedicated teams channel
-        uses: jdcargile/ms-teams-notification@v1.4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          github-token: ${{ github.token }} # this will use the runner's token.
-          ms-teams-webhook-uri: ${{ secrets.MS_TEAMS_WEBHOOK_URI }}
-          notification-summary: Your custom notification message 
-          notification-color: 17a2b8
-          timezone: America/Denver
-          verbose-logging: true
+          python-version: '3.11'
+
+      - name: Install dependencies (Python)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy
+
+      - name: Set up Node.js (for Pyright)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Pyright
+        run: npm install -g pyright
+
+      - name: Lint with Ruff
+        run: ruff check .
+
+      - name: Type check with Mypy
+        run: mypy .
+
+      - name: Type check with Pyright
+        run: pyright
+
+      - name: Notify Teams on failure
+        if: failure()
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          JOB_STATUS: failed
+        run: |
+          pip install requests
+          python scripts/notify_teams.py
