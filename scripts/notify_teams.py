@@ -36,7 +36,59 @@ def get_committer_name():
         return "Unknown committer"
 
 
+def get_commit_message():
+    try:
+        message = (
+            subprocess.check_output(
+                ["git", "log", "-1", "--pretty=format:%s"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+            .strip()
+        )
+        return message
+    except Exception:
+        return "Unknown commit message"
+
+
 committer = get_committer_name()
+commit_message = get_commit_message()
+bypass_notice = None
+if commit_message.lower().startswith("bypass-check:"):
+    bypass_notice = {
+        "type": "TextBlock",
+        "text": "⚠️ Bypassed local checks",
+        "weight": "Bolder",
+        "color": "Warning",
+        "wrap": True
+    }
+
+body = [
+    {
+        "type": "TextBlock",
+        "text": f"CI {'Failure' if status.lower() == 'failed' else 'Success'} on {branch}",
+        "weight": "Bolder",
+        "size": "Medium",
+        "color": color
+    },
+    {
+        "type": "TextBlock",
+        "text": f"Repository: {repo}\nBranch: {branch}",
+        "wrap": True
+    },
+    {
+        "type": "TextBlock",
+        "text": f"[View Workflow Run]({run_url})",
+        "wrap": True
+    },
+    {
+        "type": "TextBlock",
+        "text": f"Committer: {committer}",
+        "wrap": True
+    },
+]
+if bypass_notice:
+    body.append(bypass_notice)
 
 payload = {
     "attachments": [
@@ -46,30 +98,7 @@ payload = {
                 "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                 "type": "AdaptiveCard",
                 "version": "1.4",
-                "body": [
-                    {
-                        "type": "TextBlock",
-                        "text": f"CI {'Failure' if status.lower() == 'failed' else 'Success'} on {branch}",
-                        "weight": "Bolder",
-                        "size": "Medium",
-                        "color": color
-                    },
-                    {
-                        "type": "TextBlock",
-                        "text": f"Repository: {repo}\nBranch: {branch}",
-                        "wrap": True
-                    },
-                    {
-                        "type": "TextBlock",
-                        "text": f"[View Workflow Run]({run_url})",
-                        "wrap": True
-                    },
-                    {
-                        "type": "TextBlock",
-                        "text": f"Committer: {committer}",
-                        "wrap": True
-                    },
-                ]
+                "body": body,
             }
         }
     ]
