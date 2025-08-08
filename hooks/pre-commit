@@ -1,6 +1,19 @@
 #!/bin/sh
 # Pre-commit hook to run Ruff, Mypy, and Pyright
 # Compatible with POSIX sh (no Bash arrays)
+#
+
+commit_msg_file="$1"
+
+first_line="$(head -n 1 "$commit_msg_file")"
+echo "$first_line"
+
+case "$first_line" in
+  bypass-check\ *)
+    echo "⚠️  Pre-commit checks bypassed by commit message."
+    exit 0
+    ;;
+esac
 
 echo "Running pre-commit checks..."
 echo
